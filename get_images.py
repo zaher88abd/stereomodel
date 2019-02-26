@@ -34,12 +34,11 @@ str_camera_settings = "BRIGHTNESS"
 step_camera_settings = 1
 
 main_dir=".\\dataset"
-counter=0
 
 def main():
     print("Running...")
     init = sl.InitParameters()
-    init.depth_minimum_distance=0.15
+    init.depth_minimum_distance=0.50
     cam = sl.Camera()
     if not cam.is_opened():
         print("Opening ZED Camera...")
@@ -48,6 +47,7 @@ def main():
         print(repr(status))
         exit()
 
+    print(counter)
     runtime = sl.RuntimeParameters()
     runtime.sensing_mode=sl.SENSING_MODE.SENSING_MODE_FILL
     mat = sl.Mat()
@@ -76,7 +76,9 @@ def main():
     cam.close()
     print("\nFINISH")
 
-def save_images(cam,runtime,mat):
+
+def save_images(cam,runtime,mat,):
+    global counter
     depth_dir = ospath.join(main_dir, "depth_frame")
     left_dir = ospath.join(main_dir, "left_image")
     right_dir = ospath.join(main_dir, "right_image")
@@ -92,8 +94,8 @@ def save_images(cam,runtime,mat):
     np.save(ospath.join(depth_dir, str(counter)+".npy"), mat.get_data())
     cam.retrieve_image(mat, sl.VIEW.VIEW_CONFIDENCE)
     print("confidence", mat.get_data().shape)
+    np.save(ospath.join(depth_dir, str(counter)+".npy"), mat.get_data())
     cv2.imwrite(ospath.join(confi_dir,str(counter)+".png"), mat.get_data())
-    np.save(ospath.join(confi_dir, str(counter)+".npy"), mat.get_data())
     counter+=1
     
 
@@ -216,4 +218,5 @@ def record(cam, runtime, mat):
 
 
 if __name__ == "__main__":
+    counter = 60
     main()
