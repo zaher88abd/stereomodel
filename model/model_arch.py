@@ -1,5 +1,4 @@
-import tensorflow.keras.backend as K
-from layers import *
+from model.layers import *
 
 
 def visual_encoder(input):
@@ -24,7 +23,8 @@ def visual_encoder(input):
 
 def visual_decoder(l_encoder, l_l1, l_l2, l_l3, r_encoder, r_l1, r_l2, r_l3):
     deep_concatenate = concatenate([l_encoder, r_encoder], axis=-1)
-    l = up_sample(deep_concatenate, n_filters=12)
+    l = dens_block(deep_concatenate)
+    l = up_sample(l, n_filters=12)
     l = concatenate([l, l_l1, r_l1])
     l = dens_block(l)
 
