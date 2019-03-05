@@ -218,5 +218,5 @@ def record(cam, runtime, mat):
 
 
 if __name__ == "__main__":
-    counter = 60
+    counter = 408
     main()
