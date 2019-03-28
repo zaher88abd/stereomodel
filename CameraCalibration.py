@@ -2,11 +2,13 @@ import numpy as np
 import cv2
 
 # termination criteria
-criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 24, 0.001)
-
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 25, 0.001)
+box_r = 7
+box_c = 6
+cxr = box_c * box_r
 # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = np.zeros((6 * 7, 3), np.float32)
-objp[:, :2] = np.mgrid[0:7, 0:6].T.reshape(-1, 2)
+objp = np.zeros((box_c * box_r, 3), np.float32)
+objp[:, :2] = np.mgrid[0:box_r, 0:box_c].T.reshape(-1, 2)
 
 # Arrays to store object points and image points from all the images.
 all_3d_points = []  # 3d point in real world space
@@ -33,9 +35,9 @@ flags |= cv2.CALIB_ZERO_TANGENT_DIST
 # flags |= cv2.CALIB_FIX_K3
 # flags |= cv2.CALIB_FIX_K4
 # flags |= cv2.CALIB_FIX_K5
-x, y = np.meshgrid(range(7), range(6))
-world_points = np.hstack((x.reshape(42, 1), y.reshape(42, 1), np.zeros((42, 1)))).astype(np.float32)
-outputFile="stereoCalibration.npz"
+x, y = np.meshgrid(range(box_r), range(box_c))
+world_points = np.hstack((x.reshape(cxr, 1), y.reshape(cxr, 1), np.zeros((cxr, 1)))).astype(np.float32)
+outputFile = "stereoCalibration9.npz"
 while True:
     retL, frameL = cameraL.read()
     retR, frameR = cameraR.read()
@@ -45,25 +47,23 @@ while True:
     grayR = cv2.cvtColor(frameR, cv2.COLOR_BGR2GRAY)
 
     # Find the chess board corners
-    retL, cornersL = cv2.findChessboardCorners(grayL, (7, 6), None)
-    retR, cornersR = cv2.findChessboardCorners(grayR, (7, 6), None)
+    retL, cornersL = cv2.findChessboardCorners(grayL, (box_r, box_c), None)
+    retR, cornersR = cv2.findChessboardCorners(grayR, (box_r, box_c), None)
     img_shape = grayR.shape[::-1]
 
-    ret_L = False
-    ret_R = False
     # If found, add object points, image points (after refining them)
     if retL and retR:
         all_3d_points.append(world_points)
         corners2L = cv2.cornerSubPix(
             grayL, cornersL, (11, 11), (-1, -1), criteria)
         imgpointsL.append(corners2L)
-        frameL = cv2.drawChessboardCorners(frameL, (7, 6), corners2L, retL)
+        frameL = cv2.drawChessboardCorners(frameL, (box_r, box_c), corners2L, retL)
         cv2.imshow('imgL', frameL)
         corners2R = cv2.cornerSubPix(
             grayR, cornersR, (11, 11), (-1, -1), criteria)
         imgpointsR.append(corners2R)
 
-        frameR = cv2.drawChessboardCorners(frameR, (7, 6), corners2R, retR)
+        frameR = cv2.drawChessboardCorners(frameR, (box_r, box_c), corners2R, retR)
 
         cv2.imshow('imgR', frameR)
 
@@ -78,13 +78,6 @@ while True:
                                                              imageSize=(grayL.shape[1], grayL.shape[0]),
                                                              flags=cv2.CALIB_FIX_INTRINSIC)
 
-        print('R', R)
-        print('T', T)
-        print('E', E)
-        print('F', F)
-        camera_model = dict([('R', R), ('T', T),
-                             ('E', E), ('F', F)])
-        print(camera_model)
         OPTIMIZE_ALPHA = 0.25
         (leftRectification, rightRectification, leftProjection, rightProjection,
          dispartityToDepthMap, leftROI, rightROI) = cv2.stereoRectify(
@@ -98,7 +91,9 @@ while True:
         rightMapX, rightMapY = cv2.initUndistortRectifyMap(
             mtxR, distR, rightRectification,
             rightProjection, img_shape, cv2.CV_32FC1)
-
+        data = {"imageSize": img_shape, "leftMapX": leftMapX, "leftMapY": leftMapY, "leftROI": leftROI,
+                "rightMapX": rightMapX, "rightMapY": rightMapY, "rightROI": rightROI}
+        print(data)
         np.savez_compressed(outputFile, imageSize=img_shape,
                             leftMapX=leftMapX, leftMapY=leftMapY, leftROI=leftROI,
                             rightMapX=rightMapX, rightMapY=rightMapY, rightROI=rightROI)
