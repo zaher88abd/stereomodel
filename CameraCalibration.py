@@ -35,7 +35,7 @@ flags |= cv2.CALIB_ZERO_TANGENT_DIST
 # flags |= cv2.CALIB_FIX_K5
 x, y = np.meshgrid(range(7), range(6))
 world_points = np.hstack((x.reshape(42, 1), y.reshape(42, 1), np.zeros((42, 1)))).astype(np.float32)
-
+outputFile="stereoCalibration.npz"
 while True:
     retL, frameL = cameraL.read()
     retR, frameR = cameraR.read()
@@ -71,16 +71,7 @@ while True:
                                                              (grayL.shape[1], grayL.shape[0]), None, None)
         ret, mtxR, distR, rvecs, tvecs = cv2.calibrateCamera(all_3d_points, imgpointsR,
                                                              (grayR.shape[1], grayR.shape[0]), None, None)
-        print((grayL.shape[1], grayL.shape[0]))
-        print(type([grayL.shape[1], grayL.shape[0]]))
-        print(type(all_3d_points))
-        print(type(imgpointsL))
-        print(type(imgpointsR))
-        print(type(mtxL))
-        print(type(distL))
-        print(type(mtxR))
-        print(type(distR))
-        print(type(cv2.CALIB_FIX_INTRINSIC))
+
         retval, _, _, _, _, R, T, E, F = cv2.stereoCalibrate(objectPoints=all_3d_points, imagePoints1=imgpointsL,
                                                              imagePoints2=imgpointsR, cameraMatrix1=mtxL,
                                                              distCoeffs1=distL, cameraMatrix2=mtxR, distCoeffs2=distR,
@@ -94,6 +85,23 @@ while True:
         camera_model = dict([('R', R), ('T', T),
                              ('E', E), ('F', F)])
         print(camera_model)
+        OPTIMIZE_ALPHA = 0.25
+        (leftRectification, rightRectification, leftProjection, rightProjection,
+         dispartityToDepthMap, leftROI, rightROI) = cv2.stereoRectify(
+            mtxL, distL, mtxR, distR,
+            img_shape, R, T, None, None, None, None, None,
+            cv2.CALIB_ZERO_DISPARITY, OPTIMIZE_ALPHA)
+
+        leftMapX, leftMapY = cv2.initUndistortRectifyMap(
+            mtxL, distL, leftRectification,
+            leftProjection, img_shape, cv2.CV_32FC1)
+        rightMapX, rightMapY = cv2.initUndistortRectifyMap(
+            mtxR, distR, rightRectification,
+            rightProjection, img_shape, cv2.CV_32FC1)
+
+        np.savez_compressed(outputFile, imageSize=img_shape,
+                            leftMapX=leftMapX, leftMapY=leftMapY, leftROI=leftROI,
+                            rightMapX=rightMapX, rightMapY=rightMapY, rightROI=rightROI)
 
     cv2.imshow('imgL', frameL)
     cv2.imshow('imgR', frameR)
