@@ -25,6 +25,8 @@ stereoMatcher = cv2.StereoBM_create()
 # get cameras
 cameraL = cv2.VideoCapture(1)
 cameraR = cv2.VideoCapture(0)
+cameraR.set(cv2.CAP_PROP_FPS, 5)
+cameraL.set(cv2.CAP_PROP_FPS, 5)
 cameraL.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 cameraR.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 
@@ -34,13 +36,40 @@ cameraR.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 
 # TODO: Why these values in particular?
 # TODO: Try applying brightness/contrast/gamma adjustments to the images
-stereoMatcher = cv2.StereoSGBM_create()
-stereoMatcher.setMinDisparity(4)
-stereoMatcher.setNumDisparities(128)
-stereoMatcher.setBlockSize(21)
-stereoMatcher.setSpeckleRange(16)
-stereoMatcher.setSpeckleWindowSize(45)
-DEPTH_VISUALIZATION_SCALE = 1000
+window_size = 3
+min_disp = 16
+num_disp = 112 - min_disp
+
+stereoMatcher = cv2.StereoBM_create()
+
+
+def set_stereo_parameter(x):
+    stereoMatcher.setMinDisparity(cv2.getTrackbarPos('minDisparity', 'depth'))
+    stereoMatcher.setNumDisparities(cv2.getTrackbarPos('numDisparities', 'depth') * 16)
+    stereoMatcher.setBlockSize(cv2.getTrackbarPos('BlockSize', 'depth'))
+    stereoMatcher.setSpeckleRange(cv2.getTrackbarPos('SpeckleRange', 'depth'))
+    stereoMatcher.setSpeckleWindowSize(cv2.getTrackbarPos('SpeckleWindowSize', 'depth'))
+
+    # # SGMB
+    # stereoMatcher.setMinDisparity(cv2.getTrackbarPos('minDisparity', 'depth'))
+    # stereoMatcher.setNumDisparities(cv2.getTrackbarPos('numDisparities', 'depth') * 16)
+    # stereoMatcher.setSadWindowSize(cv2.getTrackbarPos('SADWindowSize', 'depth'))
+    # stereoMatcher.setDisp12MaxDiff(cv2.getTrackbarPos('disp12MaxDiff', 'depth'))
+    # stereoMatcher.setUniquenessRatio(cv2.getTrackbarPos('uniquenessRatio', 'depth'))
+    # stereoMatcher.setSpeckleRange(cv2.getTrackbarPos('speckleWindowSize', 'depth'))
+    # stereoMatcher.setSpeckleWindowSize(cv2.getTrackbarPos('speckleRange', 'depth') * 16)
+    pass
+
+
+cv2.createTrackbar('minDisparity', 'depth', 1, 255, set_stereo_parameter)
+cv2.createTrackbar('numDisparities', 'depth', 1, 100, set_stereo_parameter)
+cv2.createTrackbar('BlockSize', 'depth', 3, 25, set_stereo_parameter)
+cv2.createTrackbar('SpeckleRange', 'depth', 1, 200, set_stereo_parameter)
+cv2.createTrackbar('SpeckleWindowSize', 'depth', 5, 15, set_stereo_parameter)
+# cv2.createTrackbar('speckleWindowSize', 'depth', 50, 200, set_stereo_parameter)
+# cv2.createTrackbar('speckleRange', 'depth', 1, 100, set_stereo_parameter)
+
+DEPTH_VISUALIZATION_SCALE = 1
 while True:
     retL, frameL = cameraL.read()
     retR, frameR = cameraR.read()
@@ -48,6 +77,7 @@ while True:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         continue
+
     fixedLeft = cv2.remap(frameL, leftMapX, leftMapY, cv2.INTER_LINEAR)
     fixedRight = cv2.remap(frameR, rightMapX, rightMapY, cv2.INTER_LINEAR)
 
@@ -57,14 +87,18 @@ while True:
     # Normalised [0,255] as integer
     # depth = (depth - np.min(depth)) / np.ptp(depth)
 
-    cv2.imshow('left', frameL)
+    # cv2.imshow('left', frameL)
     cv2.imshow('leftFix', fixedLeft)
-    cv2.imshow('right', frameR)
+    # cv2.imshow('right', frameR)
     cv2.imshow('rightFix', fixedRight)
-    cv2.imshow('depth', depth/1000)
+    cv2.imshow('depth', (depth - np.min(depth) / num_disp))
     # print(np.max(depth), np.min(depth))
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    key = cv2.waitKey(100)
+    if key & 0xFF == ord('q'):
         break
+    elif not key == -1:
+        print(key)
+
 print(depth.shape)
 print(frameL.shape)
 cameraL.release()
