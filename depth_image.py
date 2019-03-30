@@ -9,7 +9,7 @@ def click_and_crop(event, x, y, flags, param):
         print(depth[x, y])
 
 
-calibration = np.load(r"stereoCalibration.npz", allow_pickle=False)
+calibration = np.load(r"stereoCalibration1280x720.npz", allow_pickle=False)
 imageSize = tuple(calibration["imageSize"])
 leftMapX = calibration["leftMapX"]
 leftMapY = calibration["leftMapY"]
@@ -25,8 +25,10 @@ stereoMatcher = cv2.StereoBM_create()
 # get cameras
 cameraL = cv2.VideoCapture(1)
 cameraR = cv2.VideoCapture(0)
-cameraR.set(cv2.CAP_PROP_FPS, 5)
-cameraL.set(cv2.CAP_PROP_FPS, 5)
+cameraL.set(cv2.CAP_PROP_FRAME_WIDTH, 10000);
+cameraL.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000);
+cameraR.set(cv2.CAP_PROP_FRAME_WIDTH, 10000);
+cameraR.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000);
 cameraL.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 cameraR.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 
@@ -68,6 +70,15 @@ cv2.createTrackbar('SpeckleRange', 'depth', 1, 200, set_stereo_parameter)
 cv2.createTrackbar('SpeckleWindowSize', 'depth', 5, 15, set_stereo_parameter)
 # cv2.createTrackbar('speckleWindowSize', 'depth', 50, 200, set_stereo_parameter)
 # cv2.createTrackbar('speckleRange', 'depth', 1, 100, set_stereo_parameter)
+CROP_WIDTH = 960
+
+
+def cropHorizontal(image):
+    CAMERA_WIDTH = image.shape[1]
+    return image[:,
+           int((CAMERA_WIDTH - CROP_WIDTH) / 2):
+           int(CROP_WIDTH + (CAMERA_WIDTH - CROP_WIDTH) / 2)]
+
 
 DEPTH_VISUALIZATION_SCALE = 1
 while True:
@@ -77,7 +88,8 @@ while True:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
         continue
-
+    frameL = cropHorizontal(frameL)
+    frameR = cropHorizontal(frameR)
     fixedLeft = cv2.remap(frameL, leftMapX, leftMapY, cv2.INTER_LINEAR)
     fixedRight = cv2.remap(frameR, rightMapX, rightMapY, cv2.INTER_LINEAR)
 

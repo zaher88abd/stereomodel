@@ -1,6 +1,16 @@
 import numpy as np
 import cv2
 
+CROP_WIDTH = 960
+
+
+def cropHorizontal(image):
+    CAMERA_WIDTH = image.shape[1]
+    return image[:,
+           int((CAMERA_WIDTH - CROP_WIDTH) / 2):
+           int(CROP_WIDTH + (CAMERA_WIDTH - CROP_WIDTH) / 2)]
+
+
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 25, 0.001)
 box_r = 7
@@ -18,6 +28,12 @@ imgpointsR = []  # 2d points in image plane.
 # get cameras
 cameraL = cv2.VideoCapture(1)
 cameraR = cv2.VideoCapture(0)
+cameraL.set(cv2.CAP_PROP_FRAME_WIDTH, 10000)
+cameraL.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000)
+cameraR.set(cv2.CAP_PROP_FRAME_WIDTH, 10000)
+cameraR.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000)
+print("CameraL", cameraR.get(cv2.CAP_PROP_FRAME_WIDTH), cameraR.get(cv2.CAP_PROP_FRAME_HEIGHT))
+print("CameraR", cameraR.get(cv2.CAP_PROP_FRAME_WIDTH), cameraR.get(cv2.CAP_PROP_FRAME_HEIGHT))
 cameraL.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 cameraR.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 
@@ -37,12 +53,18 @@ flags |= cv2.CALIB_ZERO_TANGENT_DIST
 # flags |= cv2.CALIB_FIX_K5
 x, y = np.meshgrid(range(box_r), range(box_c))
 world_points = np.hstack((x.reshape(cxr, 1), y.reshape(cxr, 1), np.zeros((cxr, 1)))).astype(np.float32)
-outputFile = "stereoCalibration9.npz"
+outputFile = "stereoCalibration960x720.npz"
+import os
+
+file_counter = len(os.listdir("calibration_images")) / 2
 while True:
     retL, frameL = cameraL.read()
     retR, frameR = cameraR.read()
+
     if not retL and not retR:
         break
+    frameR = cropHorizontal(frameR)
+    frameL = cropHorizontal(frameL)
     grayL = cv2.cvtColor(frameL, cv2.COLOR_BGR2GRAY)
     grayR = cv2.cvtColor(frameR, cv2.COLOR_BGR2GRAY)
 
@@ -53,6 +75,9 @@ while True:
 
     # If found, add object points, image points (after refining them)
     if retL and retR:
+        cv2.imwrite("calibration_images/" + "l" + str(file_counter) + ".jpg", frameL)
+        cv2.imwrite("calibration_images/" + "r" + str(file_counter) + ".jpg", frameR)
+        file_counter += 1
         all_3d_points.append(world_points)
         corners2L = cv2.cornerSubPix(
             grayL, cornersL, (11, 11), (-1, -1), criteria)
@@ -93,7 +118,7 @@ while True:
             rightProjection, img_shape, cv2.CV_32FC1)
         data = {"imageSize": img_shape, "leftMapX": leftMapX, "leftMapY": leftMapY, "leftROI": leftROI,
                 "rightMapX": rightMapX, "rightMapY": rightMapY, "rightROI": rightROI}
-        print(data)
+        print("Number of taken Images=", str(file_counter))
         np.savez_compressed(outputFile, imageSize=img_shape,
                             leftMapX=leftMapX, leftMapY=leftMapY, leftROI=leftROI,
                             rightMapX=rightMapX, rightMapY=rightMapY, rightROI=rightROI)
