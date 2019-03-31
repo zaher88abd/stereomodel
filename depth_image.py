@@ -3,19 +3,21 @@ import numpy as np
 
 depth = None
 # Filtering
-kernel= np.ones((3,3),np.uint8)
+kernel = np.ones((3, 3), np.uint8)
 
-def coords_mouse_disp(event,x,y,flags,param):
+
+def coords_mouse_disp(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDBLCLK:
-        #print x,y,disp[y,x],filteredImg[y,x]
-        average=0
-        for u in range (-1,2):
-            for v in range (-1,2):
-                average += disp[y+u,x+v]
-        average=average/9
-        Distance= -593.97*average**(3) + 1506.8*average**(2) - 1373.1*average + 522.06
-        Distance= np.around(Distance*0.01,decimals=2)
-        print('Distance: '+ str(Distance)+' m')
+        # print x,y,disp[y,x],filteredImg[y,x]
+        average = 0
+        for u in range(-1, 2):
+            for v in range(-1, 2):
+                average += disp[y + u, x + v]
+        average = average / 9
+        Distance = -593.97 * average ** (3) + 1506.8 * average ** (2) - 1373.1 * average + 522.06
+        Distance = np.around(Distance * 0.01, decimals=2)
+        print('Distance: ' + str(Distance) + ' m')
+
 
 def click_and_crop(event, x, y, flags, param):
     if not depth is None and event == cv2.EVENT_LBUTTONDOWN:
@@ -31,10 +33,6 @@ rightMapX = calibration["rightMapX"]
 rightMapY = calibration["rightMapY"]
 rightROI = tuple(calibration["rightROI"])
 
-# cv2.namedWindow("depth")
-# cv2.setMouseCallback("depth", click_and_crop)
-
-stereoMatcher = cv2.StereoBM_create()
 # get cameras
 cameraL = cv2.VideoCapture(1)
 cameraR = cv2.VideoCapture(0)
@@ -44,10 +42,6 @@ cameraR.set(cv2.CAP_PROP_FRAME_WIDTH, 10000);
 cameraR.set(cv2.CAP_PROP_FRAME_HEIGHT, 10000);
 cameraL.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 cameraR.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
-
-# Use MJPEG to avoid overloading the USB 2.0 bus at this resolution
-# cameraL.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
-# cameraR.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
 
 # TODO: Why these values in particular?
 # TODO: Try applying brightness/contrast/gamma adjustments to the images
@@ -81,32 +75,6 @@ wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=stereo)
 wls_filter.setLambda(lmbda)
 wls_filter.setSigmaColor(sigma)
 
-#
-# def set_stereo_parameter(x):
-#     stereoMatcher.setMinDisparity(cv2.getTrackbarPos('minDisparity', 'depth'))
-#     stereoMatcher.setNumDisparities(cv2.getTrackbarPos('numDisparities', 'depth') * 16)
-#     stereoMatcher.setBlockSize(cv2.getTrackbarPos('BlockSize', 'depth'))
-#     stereoMatcher.setSpeckleRange(cv2.getTrackbarPos('SpeckleRange', 'depth'))
-#     stereoMatcher.setSpeckleWindowSize(cv2.getTrackbarPos('SpeckleWindowSize', 'depth'))
-#
-#     # # SGMB
-#     # stereoMatcher.setMinDisparity(cv2.getTrackbarPos('minDisparity', 'depth'))
-#     # stereoMatcher.setNumDisparities(cv2.getTrackbarPos('numDisparities', 'depth') * 16)
-#     # stereoMatcher.setSadWindowSize(cv2.getTrackbarPos('SADWindowSize', 'depth'))
-#     # stereoMatcher.setDisp12MaxDiff(cv2.getTrackbarPos('disp12MaxDiff', 'depth'))
-#     # stereoMatcher.setUniquenessRatio(cv2.getTrackbarPos('uniquenessRatio', 'depth'))
-#     # stereoMatcher.setSpeckleRange(cv2.getTrackbarPos('speckleWindowSize', 'depth'))
-#     # stereoMatcher.setSpeckleWindowSize(cv2.getTrackbarPos('speckleRange', 'depth') * 16)
-#     pass
-#
-#
-# cv2.createTrackbar('minDisparity', 'depth', 1, 255, set_stereo_parameter)
-# cv2.createTrackbar('numDisparities', 'depth', 1, 100, set_stereo_parameter)
-# cv2.createTrackbar('BlockSize', 'depth', 3, 25, set_stereo_parameter)
-# cv2.createTrackbar('SpeckleRange', 'depth', 1, 200, set_stereo_parameter)
-# cv2.createTrackbar('SpeckleWindowSize', 'depth', 5, 15, set_stereo_parameter)
-# # cv2.createTrackbar('speckleWindowSize', 'depth', 50, 200, set_stereo_parameter)
-# # cv2.createTrackbar('speckleRange', 'depth', 1, 100, set_stereo_parameter)
 CROP_WIDTH = 960
 
 
@@ -158,21 +126,16 @@ while True:
     filt_Color = cv2.applyColorMap(filteredImg, cv2.COLORMAP_OCEAN)
 
     cv2.imshow('leftFix', fixedLeft)
-    # cv2.imshow('right', frameR)
     cv2.imshow('rightFix', fixedRight)
-    # cv2.imshow('depth1', (depth - np.min(depth) / num_disp))
-
-    cv2.imshow('Filtered Color Depth',filt_Color)
+    cv2.imshow('Filtered Color Depth', filt_Color)
     cv2.setMouseCallback("Filtered Color Depth", coords_mouse_disp, filt_Color)
 
-    # print(np.max(depth), np.min(depth))
     key = cv2.waitKey(100)
     if key & 0xFF == ord('q'):
         break
     elif not key == -1:
         print(key)
 
-print(frameL.shape)
 cameraL.release()
 cameraR.release()
 cv2.destroyAllWindows()
