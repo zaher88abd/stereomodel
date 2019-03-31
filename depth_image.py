@@ -9,7 +9,7 @@ def click_and_crop(event, x, y, flags, param):
         print(depth[x, y])
 
 
-calibration = np.load(r"stereoCalibration1280x720.npz", allow_pickle=False)
+calibration = np.load(r"stereoCalibration960x720.npz", allow_pickle=False)
 imageSize = tuple(calibration["imageSize"])
 leftMapX = calibration["leftMapX"]
 leftMapY = calibration["leftMapY"]
@@ -99,9 +99,9 @@ while True:
     # Normalised [0,255] as integer
     # depth = (depth - np.min(depth)) / np.ptp(depth)
 
-    # cv2.imshow('left', frameL)
+    cv2.imshow('left', frameL)
     cv2.imshow('leftFix', fixedLeft)
-    # cv2.imshow('right', frameR)
+    cv2.imshow('right', frameR)
     cv2.imshow('rightFix', fixedRight)
     cv2.imshow('depth', (depth - np.min(depth) / num_disp))
     # print(np.max(depth), np.min(depth))

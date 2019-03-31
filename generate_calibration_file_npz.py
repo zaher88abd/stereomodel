@@ -1,12 +1,13 @@
 import cv2
 import numpy as np
 import os
+from tqdm import tqdm
 
 PATH_TO_IMAGES_FOLDER = "calibration_images"
-NAME_OF_OUTPUT_FILE = "stereoCalibration960x720.npz"
+NAME_OF_OUTPUT_FILE = "stereoCalibration960x7209.npz"
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 25, 0.001)
-box_r = 7
+box_r = 9
 box_c = 6
 cxr = box_c * box_r
 
@@ -42,11 +43,10 @@ def read_images():
     if len(os.listdir(PATH_TO_IMAGES_FOLDER)) < 64:
         print("You might need more images for calibration")
     images = set()
-    while len(images) < 64:
-        images.add(np.random.randint(0, len(os.listdir(PATH_TO_IMAGES_FOLDER))))
-
-    for img in images:
-
+    while len(images) < 65:
+        images.add(np.random.randint(0, len(os.listdir(PATH_TO_IMAGES_FOLDER)) / 2))
+    used_images = 0
+    for img in tqdm(images):
         l_img = cv2.imread(os.path.join(PATH_TO_IMAGES_FOLDER, "l" + str(img) + ".jpg"), cv2.IMREAD_COLOR)
         r_img = cv2.imread(os.path.join(PATH_TO_IMAGES_FOLDER, "r" + str(img) + ".jpg"), cv2.IMREAD_COLOR)
 
@@ -60,21 +60,14 @@ def read_images():
 
         # If found, add object points, image points (after refining them)
         if retL and retR:
-            cv2.imwrite("calibration_images/" + "l" + str(img) + ".jpg", frameL)
-            cv2.imwrite("calibration_images/" + "r" + str(img) + ".jpg", frameR)
+            used_images += 1
             all_3d_points.append(world_points)
             corners2L = cv2.cornerSubPix(
                 grayL, cornersL, (11, 11), (-1, -1), criteria)
             imgpointsL.append(corners2L)
-            frameL = cv2.drawChessboardCorners(frameL, (box_r, box_c), corners2L, retL)
-            cv2.imshow('imgL', frameL)
             corners2R = cv2.cornerSubPix(
                 grayR, cornersR, (11, 11), (-1, -1), criteria)
             imgpointsR.append(corners2R)
-
-            frameR = cv2.drawChessboardCorners(frameR, (box_r, box_c), corners2R, retR)
-
-            cv2.imshow('imgR', frameR)
 
             ret, mtxL, distL, rvecs, tvecs = cv2.calibrateCamera(all_3d_points, imgpointsL,
                                                                  (grayL.shape[1], grayL.shape[0]), None, None)
@@ -101,12 +94,11 @@ def read_images():
             rightMapX, rightMapY = cv2.initUndistortRectifyMap(
                 mtxR, distR, rightRectification,
                 rightProjection, img_shape, cv2.CV_32FC1)
-            data = {"imageSize": img_shape, "leftMapX": leftMapX, "leftMapY": leftMapY, "leftROI": leftROI,
-                    "rightMapX": rightMapX, "rightMapY": rightMapY, "rightROI": rightROI}
-            print("Number of taken Images=", str(img))
-            np.savez_compressed(NAME_OF_OUTPUT_FILE, imageSize=img_shape,
-                                leftMapX=leftMapX, leftMapY=leftMapY, leftROI=leftROI,
-                                rightMapX=rightMapX, rightMapY=rightMapY, rightROI=rightROI)
+
+    print("Used Images :", used_images)
+    np.savez_compressed(NAME_OF_OUTPUT_FILE, imageSize=img_shape,
+                        leftMapX=leftMapX, leftMapY=leftMapY, leftROI=leftROI,
+                        rightMapX=rightMapX, rightMapY=rightMapY, rightROI=rightROI)
 
 
 if __name__ == '__main__':
