@@ -4,7 +4,7 @@ import os
 from tqdm import tqdm
 
 PATH_TO_IMAGES_FOLDER = "calibration_images"
-NAME_OF_OUTPUT_FILE = "stereoCalibration960x7209.npz"
+NAME_OF_OUTPUT_FILE = "stereoCalibration960x720x100.npz"
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 25, 0.001)
 box_r = 9
@@ -43,9 +43,10 @@ def read_images():
     if len(os.listdir(PATH_TO_IMAGES_FOLDER)) < 64:
         print("You might need more images for calibration")
     images = set()
-    while len(images) < 65:
+    while len(images) < 100:
         images.add(np.random.randint(0, len(os.listdir(PATH_TO_IMAGES_FOLDER)) / 2))
     used_images = 0
+    img_shape = 0
     for img in tqdm(images):
         l_img = cv2.imread(os.path.join(PATH_TO_IMAGES_FOLDER, "l" + str(img) + ".jpg"), cv2.IMREAD_COLOR)
         r_img = cv2.imread(os.path.join(PATH_TO_IMAGES_FOLDER, "r" + str(img) + ".jpg"), cv2.IMREAD_COLOR)
@@ -69,31 +70,35 @@ def read_images():
                 grayR, cornersR, (11, 11), (-1, -1), criteria)
             imgpointsR.append(corners2R)
 
-            ret, mtxL, distL, rvecs, tvecs = cv2.calibrateCamera(all_3d_points, imgpointsL,
-                                                                 (grayL.shape[1], grayL.shape[0]), None, None)
-            ret, mtxR, distR, rvecs, tvecs = cv2.calibrateCamera(all_3d_points, imgpointsR,
-                                                                 (grayR.shape[1], grayR.shape[0]), None, None)
+    print("Calibrate images")
+    print("Calibrate Camera 1")
+    ret, mtxL, distL, rvecs, tvecs = cv2.calibrateCamera(all_3d_points, imgpointsL,
+                                                         img_shape, None, None)
+    print("Calibrate Camera 2")
+    ret, mtxR, distR, rvecs, tvecs = cv2.calibrateCamera(all_3d_points, imgpointsR,
+                                                         img_shape, None, None)
 
-            retval, _, _, _, _, R, T, E, F = cv2.stereoCalibrate(objectPoints=all_3d_points, imagePoints1=imgpointsL,
-                                                                 imagePoints2=imgpointsR, cameraMatrix1=mtxL,
-                                                                 distCoeffs1=distL, cameraMatrix2=mtxR,
-                                                                 distCoeffs2=distR,
-                                                                 imageSize=(grayL.shape[1], grayL.shape[0]),
-                                                                 flags=cv2.CALIB_FIX_INTRINSIC)
+    print("Calibrate stereo cameras")
+    retval, _, _, _, _, R, T, E, F = cv2.stereoCalibrate(objectPoints=all_3d_points, imagePoints1=imgpointsL,
+                                                         imagePoints2=imgpointsR, cameraMatrix1=mtxL,
+                                                         distCoeffs1=distL, cameraMatrix2=mtxR,
+                                                         distCoeffs2=distR,
+                                                         imageSize=img_shape,
+                                                         flags=cv2.CALIB_FIX_INTRINSIC)
 
-            OPTIMIZE_ALPHA = 0.25
-            (leftRectification, rightRectification, leftProjection, rightProjection,
-             dispartityToDepthMap, leftROI, rightROI) = cv2.stereoRectify(
-                mtxL, distL, mtxR, distR,
-                img_shape, R, T, None, None, None, None, None,
-                cv2.CALIB_ZERO_DISPARITY, OPTIMIZE_ALPHA)
+    OPTIMIZE_ALPHA = 0.25
+    (leftRectification, rightRectification, leftProjection, rightProjection,
+     dispartityToDepthMap, leftROI, rightROI) = cv2.stereoRectify(
+        mtxL, distL, mtxR, distR,
+        img_shape, R, T, None, None, None, None, None,
+        cv2.CALIB_ZERO_DISPARITY, OPTIMIZE_ALPHA)
 
-            leftMapX, leftMapY = cv2.initUndistortRectifyMap(
-                mtxL, distL, leftRectification,
-                leftProjection, img_shape, cv2.CV_32FC1)
-            rightMapX, rightMapY = cv2.initUndistortRectifyMap(
-                mtxR, distR, rightRectification,
-                rightProjection, img_shape, cv2.CV_32FC1)
+    leftMapX, leftMapY = cv2.initUndistortRectifyMap(
+        mtxL, distL, leftRectification,
+        leftProjection, img_shape, cv2.CV_32FC1)
+    rightMapX, rightMapY = cv2.initUndistortRectifyMap(
+        mtxR, distR, rightRectification,
+        rightProjection, img_shape, cv2.CV_32FC1)
 
     print("Used Images :", used_images)
     np.savez_compressed(NAME_OF_OUTPUT_FILE, imageSize=img_shape,
