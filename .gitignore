@@ -83,3 +83,5 @@ fabric.properties
 .idea/
 
 # End of https://www.gitignore.io/api/pycharm
+# Data
+calibration_images
