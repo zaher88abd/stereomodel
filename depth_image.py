@@ -52,7 +52,7 @@ cameraR.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # turn the autofocus off
 # Create StereoSGBM and prepare all parameters
 window_size = 3
 min_disp = 2
-num_disp = 130 - min_disp
+num_disp = 146 - min_disp
 stereo = cv2.StereoSGBM_create(minDisparity=min_disp,
                                numDisparities=num_disp,
                                blockSize=window_size,
@@ -60,8 +60,8 @@ stereo = cv2.StereoSGBM_create(minDisparity=min_disp,
                                speckleWindowSize=100,
                                speckleRange=32,
                                disp12MaxDiff=5,
-                               P1=8 * 3 * window_size ** 2,
-                               P2=32 * 3 * window_size ** 2)
+                               P1=4 * 3 * window_size ** 2,
+                               P2=16 * 3 * window_size ** 2)
 
 # Used for the filtered image
 stereoR = cv2.ximgproc.createRightMatcher(stereo)  # Create another stereo for right this time
@@ -106,7 +106,7 @@ while True:
     dispL = np.int16(dispL)
     dispR = np.int16(dispR)
     # Using the WLS filter
-    filteredImg = wls_filter.filter(dispL, grayLeft, None, dispR)
+    filteredImg = wls_filter.filter(disp, grayLeft, None, dispR)
     filteredImg = cv2.normalize(src=filteredImg, dst=filteredImg, beta=0, alpha=255, norm_type=cv2.NORM_MINMAX)
     filteredImg = np.uint8(filteredImg)
 
