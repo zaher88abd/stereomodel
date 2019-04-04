@@ -4,7 +4,7 @@ import os
 from tqdm import tqdm
 
 PATH_TO_IMAGES_FOLDER = "calibration_images"
-NAME_OF_OUTPUT_FILE = "stereoCalibration960x720x100.npz"
+NAME_OF_OUTPUT_FILE = "stereoCalibration960x720x75_10cm.npz"
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 25, 0.001)
 box_r = 9
@@ -43,7 +43,7 @@ def read_images():
     if len(os.listdir(PATH_TO_IMAGES_FOLDER)) < 64:
         print("You might need more images for calibration")
     images = set()
-    while len(images) < 100:
+    while len(images) < 75:
         images.add(np.random.randint(0, len(os.listdir(PATH_TO_IMAGES_FOLDER)) / 2))
     used_images = 0
     img_shape = 0
@@ -77,6 +77,9 @@ def read_images():
     print("Calibrate Camera 2")
     ret, mtxR, distR, rvecs, tvecs = cv2.calibrateCamera(all_3d_points, imgpointsR,
                                                          img_shape, None, None)
+
+    print(mtxL)
+    print(mtxR)
 
     print("Calibrate stereo cameras")
     retval, _, _, _, _, R, T, E, F = cv2.stereoCalibrate(objectPoints=all_3d_points, imagePoints1=imgpointsL,
