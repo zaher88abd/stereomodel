@@ -18,10 +18,8 @@ def coords_mouse_disp(event, x, y, flags, param):
             average ** (3) + 1506.8 * average ** (2) - \
             1373.1 * average + 522.06
         Distance = np.around(Distance * 0.01, decimals=2)
-        dis = 886.7091089175*10/average
         dis = np.around(dis*0.01, decimals=2)
         print('Distance: ' + str(Distance)+' m')
-        print('Distance2: ' + str(dis)+' m')
 
 
 def click_and_crop(event, x, y, flags, param):
